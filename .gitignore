@@ -1,0 +1,14 @@
+/target
+/dist
+.DS_Store
+*.swp
+# dev-only reference renderer deps
+/scripts/reference/node_modules/
+/scripts/reference/package-lock.json
+# local verification scratch space
+/scripts/verify/.cache/
+# generated trial sites
+/tmp-site/
+
+# Cargo lock is not committed (library-style repo; regenerated on build)
+/Cargo.lock

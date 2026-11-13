@@ -1,0 +1,3 @@
+[
+  "flowchart LR\n  A[Start] --> B{Choice}\n  B -->|yes| C[Done]\n  B -->|no| A"
+]

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="{{ site.assets_url }}/favicon.ico">
+    <link rel="apple-touch-icon" href="{{ site.assets_url }}/favicon.png">
+    <link rel="stylesheet" type="text/css" href="{{ site.assets_url }}/highlight.css">
+    <link rel="stylesheet" type="text/css" href="{{ site.assets_url }}/katex.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ site.assets_url }}/main.css">
+    <title>{% block title %}{{ page.title_string }}{% endblock %}</title>
+{% if site.google_analytics_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ site.google_analytics_id }}"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '{{ site.google_analytics_id }}');
+    </script>
+{% endif %}
+{% block head %}{% endblock %}
+  </head>
+  <body>
+    <div class="app">
+{% block content %}{% endblock %}
+      <div class="footer">
+        <div class="license">
+          Except where otherwise noted, content on this site is licensed under a <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a> license.
+        </div>
+        <div class="copyright">
+          Copyright©2017 {{ site.web_master }}, All Rights Reserved. Powered by <a href="https://pages.github.com/">GitHub Pages</a> and <a href="https://github.com/features/actions">GitHub Actions</a>.
+        </div>
+      </div>
+    </div>
+{% block scripts %}    <script src="{{ site.assets_url }}/main.js"></script>
+{% endblock %}  </body>
+</html>

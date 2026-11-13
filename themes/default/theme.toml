@@ -1,0 +1,10 @@
+name = "default"
+version = "0.1.0"
+description = "The original SF-Zhou blog look"
+license = "MIT OR Apache-2.0"
+min_blogen_version = "0.1.0"
+
+[templates]
+article = "article.html"
+index = "index.html"
+profile = "profile.md"

@@ -1,0 +1,15 @@
+{% if comments and comments.giscus %}      <script src="https://giscus.app/client.js"
+      data-repo="{{ comments.giscus.repo }}"
+      data-repo-id="{{ comments.giscus.repo_id }}"
+{% if comments.giscus.category %}      data-category="{{ comments.giscus.category }}"
+{% endif %}{% if comments.giscus.category_id %}      data-category-id="{{ comments.giscus.category_id }}"
+{% endif %}      data-mapping="{{ comments.giscus.mapping }}"
+      data-reactions-enabled="{{ comments.giscus.reactions_enabled }}"
+      data-emit-metadata="{{ comments.giscus.emit_metadata }}"
+      data-input-position="{{ comments.giscus.input_position }}"
+      data-theme="{{ comments.giscus.theme }}"
+      data-lang="{{ comments.giscus.lang }}"
+      crossorigin="anonymous"
+      async>
+    </script>
+{% endif %}

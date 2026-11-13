@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}      <div class="title">
+        <h1> {{ page.title }} </h1>
+      </div>
+      <div class="markdown">
+{% for article in articles %}{% include "partials/card.html" %}{% endfor %}      </div>
+{% endblock %}

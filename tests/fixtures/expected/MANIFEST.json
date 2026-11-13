@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "purpose": "oracle outputs for blogen integration tests (tests/fixtures)",
+  "generated_by": "scripts/verify/make_fixtures.sh",
+  "source": {
+    "repo": "SF-Zhou/blog (local checkout)",
+    "commit": "d4cb7aafad90f09cdcd85e2482eae739483743a5",
+    "commit_subject": "add post: RuaPC safe zero-copy; drop old Rust RDMA series",
+    "pinned_legacy_ref": "d4cb7aafad90f09cdcd85e2482eae739483743a5",
+    "pipeline": "Node.js blog/src/main.js",
+    "command": "node src/main.js (staged git archive d4cb7aafad90f09cdcd85e2482eae739483743a5 + node_modules symlink)"
+  },
+  "generator": {
+    "node": "v24.19.0",
+    "deps": {
+      "markdown-it": "14.3.0",
+      "markdown-it-anchor": "9.2.1",
+      "markdown-it-implicit-figures": "0.12.0",
+      "markdown-it-table-of-contents": "1.2.0",
+      "markdown-it-texmath": "1.0.0",
+      "katex": "0.18.1",
+      "prismjs": "1.30.0",
+      "md5": "2.3.0",
+      "mustache": "4.2.0",
+      "mermaid": "11.16.0",
+      "@mermaid-js/mermaid-cli": "11.16.0"
+    },
+    "legacy_deps_sha256": "9d3d5e1f8d8ff87151bc7eeb5ac4536b8dd8da4300b3d7d8c839b877eabb91bf",
+    "legacy_package_lock_sha256": "7f3eceb7b3934c276308e6821681ae0d28764cb600c140daf51327408371395c"
+  },
+  "input_site": {
+    "config": "tests/fixtures/site/blogen.toml",
+    "posts": [
+      "cpp/[2024.02.03 C++]code_highlighting.md",
+      "images/photo.png",
+      "linux/[2024.03.04 Linux,Tools Some Display Name]display_name_author.md",
+      "misc/[2024.04.05 Misc]figure_image.md",
+      "misc/[2024.05.06 Misc]mermaid_diagram.md",
+      "notes/[2024.07.08 Notes]filename_title.md",
+      "notes/deep/[2023.12.31 Notes]nested_post.md",
+      "productivity/[2024.08.09 Productivity,Tools]lists_quotes_unknown_lang.md",
+      "rust/[2024.01.02 Rust,C++]first_post.md",
+      "secret/[2024.06.07 Hidden,Secret]hidden_note.md"
+    ],
+    "node_config": {
+      "article_format": "md",
+      "default_author": "fixture-author",
+      "github_repo": "SF-Zhou/sf-zhou.github.io",
+      "github_repo_id": "MDEwOlJlcG9zaXRvcnk4MDc5ODgwNg==",
+      "google_analytics_id": "G-FIXTURE",
+      "site_description": "blogen parity fixture site",
+      "site_language": "en",
+      "site_name": "Fixture Blog",
+      "site_url": "https://sf-zhou.github.io",
+      "web_master": "fixture-master"
+    }
+  },
+  "conventions": {
+    "pages": "full article page HTML as rendered by the old site",
+    "bodies": "inner HTML of <div class=\"markdown\"> in pages/",
+    "mermaid_placeholder": "<figure class=\"mermaid\"></figure>",
+    "mermaid_definitions": "mermaid/<rel>.json lists the fence contents in document order",
+    "rss_last_build_date": "__LAST_BUILD_DATE__",
+    "ordering": "index.json/index.html/rss.xml are ordered by date desc, then title"
+  },
+  "stats": {
+    "article_pages": 9,
+    "expected_files": 25,
+    "expected_bytes": 56656
+  },
+  "files": {
+    "bodies/cpp/code_highlighting.html": "44512c8392d6e1232d48d5d0359a818b9d9977e5478389f4a6c44eee5798e9da",
+    "bodies/linux/display_name_author.html": "b9cfe3238ebf8eee0c801f8a7e3726dcd0a801be4474f6b07d5db0b0d3446216",
+    "bodies/misc/figure_image.html": "7e686a782992db9db3d5e1621c8600123c0ffa20f6f4c747dcb6d1815cac745a",
+    "bodies/misc/mermaid_diagram.html": "e31af3debab35b9905fc70cfab1435caf9d9380110beef43e2d3dc3b0aecdc4b",
+    "bodies/notes/deep/nested_post.html": "dd244eebcec1d8b6d326a0afbac4a2e8b174f0725a9ea32117c7f6843209abe3",
+    "bodies/notes/filename_title.html": "85cd398e32b77beab4fbaf6552e3fa7b3199c973f4ddf90c9a58dd609777c4c6",
+    "bodies/productivity/lists_quotes_unknown_lang.html": "42b025b0b1bdd204261b76cf4cfcdf67fff05b2dc2c2fae37dd04702aa8df9c0",
+    "bodies/rust/first_post.html": "8326f1c0c4b8a8609b2ea13dfaf7ad8430906906be5b6caf4d8e3916c3a03d39",
+    "bodies/secret/hidden_note.htm": "f8f5df7385e288532b4e34b500a8cfea1258bccf07ff056db4ff234e296e8300",
+    "cards.html": "7663d556d4191fbf1a50dd3b618f76bdaca0fc649e3e465a0d5b8eecdbb708d5",
+    "index.json": "c45d3910c8d2245782bae48a94a9a379fd16823c4a022973e51e7cd6fde85128",
+    "mermaid/misc/mermaid_diagram.html.json": "01c59c072989fbe1a3c6efe57a978448625704e8f793b4bf348c6c94a60ba826",
+    "pages/cpp/code_highlighting.html": "b63c516b67bca50a2e8471819fda9ef7c496c31076558b29fbd03a3c9d6fd36e",
+    "pages/index.html": "af8337b12bfda0e3441203a0ca5b62760ecc65260b164137e8e76fac452b7ee4",
+    "pages/linux/display_name_author.html": "8b98d9b1497d7aa6fe2fe2ede431bc50d4a429428dadb4bd5bfd721d2001467a",
+    "pages/misc/figure_image.html": "3e18161792596eed2eb630c3c0f83d2a86e779ca24223760779f9371887e5540",
+    "pages/misc/mermaid_diagram.html": "27dcd730f15fe375ed3ee645dd5f650ab45dd833de982e450123ce23e944f41b",
+    "pages/notes/deep/nested_post.html": "bf091f6d34103938d05b7ff21cffe1928192c026fd24465a0b4011d5dbeb0a33",
+    "pages/notes/filename_title.html": "cb1befe6dcd21a3328f5b65fc22e501b118ae2125d65b4ece650870a7a0d4602",
+    "pages/productivity/lists_quotes_unknown_lang.html": "36e4290d27d21e9cf039c4cdd5ded1b8d549333ca392701a89e6c7d1290a5ced",
+    "pages/rust/first_post.html": "2e4d757f3d63d4298493184882052456ccc3cba209956356dba6c9170cdaf11d",
+    "pages/secret/hidden_note.htm": "2a9ca470c9daadf26a043ace160de23616edd203fed747c6a47b17820f9fdae4",
+    "profile/README.md": "e56492223754a078eee4a95c91afbeb6c774b39b67b760c3811b576b64e4d5d3",
+    "rss.xml": "18c1d4ad191831bf8354076d53be7fb5a484fc0c8d31c8e6eda242395aca94d7"
+  }
+}

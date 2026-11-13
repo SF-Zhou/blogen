@@ -1,0 +1,71 @@
+# blogen config for the REAL SF-Zhou blog, used by the parity harness.
+#
+# This is a verification helper, not part of the crate. It maps the old
+# legacy `blog/config.json` onto blogen's TOML schema so that a candidate site
+# can be built from the actual blog posts and compared against the Node
+# baseline (scripts/verify/.cache/baseline/public).
+#
+# NOTE: this file is for the historical migration gate. The blog repository has
+# since been migrated (it has its own blogen.toml and its build.sh runs
+# `blogen build`), so for a post-migration audit build the blog HEAD archive
+# directly and run its ./build.sh; `run.sh --candidate <tmp>` then compares it
+# with the pinned baseline.
+#
+# Typical use (the blog checkout is READ-ONLY; build in a temp dir):
+#
+#   BLOG=${BLOG_DIR:-$(cd "$(dirname scripts/verify/blog-site.toml)/../.." && pwd)/../blog}
+#   tmp=$(mktemp -d)
+#   ln -s "$BLOG/posts" "$tmp/posts"        # blogen only reads the posts tree
+#   cp scripts/verify/blog-site.toml "$tmp/blogen.toml"
+#   cargo run -q -- --config "$tmp/blogen.toml" build    # --config is a global flag
+#   scripts/verify/run.sh --candidate "$tmp" --screenshots
+#
+# `$tmp` then contains `public/` (site root) and `profile/README.md`, so:
+#   scripts/verify/run.sh --candidate "$tmp" --screenshots
+
+[site]
+name = "SF-Zhou's Blog"
+url = "https://sf-zhou.github.io"
+description = "SF-Zhou's Blog"
+language = "zh-CN"
+default_author = "SF-Zhou"
+web_master = "SF-Zhou"
+google_analytics_id = "G-GQ26H3JQ3G"
+
+[build]
+posts = "posts"
+output = "public"
+article_format = "md"
+images = "images"
+# The old posts reference only local images; keep the old default. If this is
+# enabled and a post references a remote image, blogen writes the downloaded
+# image into <posts>/images/ (the symlinked blog checkout would be mutated!) -
+# so point `posts` at a copy instead of a symlink in that case.
+download_remote_images = false
+clean = true
+parallel = 0
+
+[theme]
+name = "default"
+assets = "dist"
+
+[profile]
+path = "profile"
+limit = 5
+
+[comments.giscus]
+repo = "SF-Zhou/sf-zhou.github.io"
+repo_id = "MDEwOlJlcG9zaXRvcnk4MDc5ODgwNg=="
+category = "Announcements"
+category_id = "DIC_kwDOBNDkVs4CA6GQ"
+mapping = "title"
+reactions_enabled = "0"
+emit_metadata = "0"
+input_position = "bottom"
+theme = "preferred_color_scheme"
+lang = "en"
+
+[rss]
+enabled = true
+file = "rss.xml"
+limit = 20

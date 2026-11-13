@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build
+        run: cargo build --all-targets --locked
+      - name: Test
+        run: cargo test --locked
+      - name: Build release binary
+        run: cargo build --release --locked
+
+  lint:
+    name: Format & Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Docs
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --locked
+
+  docs:
+    name: Docs build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Documentation
+        run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --locked
+
+  end-to-end:
+    name: End-to-end site build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install binary
+        run: cargo install --path . --locked
+      - name: Init and build a site
+        run: |
+          blogen init /tmp/site --name "CI Blog" --url https://example.com
+          cd /tmp/site
+          blogen build --strict
+          test -f public/index.html
+          test -f public/index.json
+          test -f public/rss.xml
+          test -f "public/hello-world.html"
+          grep -q 'class="katex"' "public/hello-world.html"
+          grep -q 'language-rust' "public/hello-world.html"
+          test -f public/dist/main.css
+          test ! -e public/dist/mermaid.min.js
+          grep -q 'class="mermaid-light"><svg' "public/hello-world.html"
+
+  package:
+    name: Cargo package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Package
+        run: cargo package --locked --allow-dirty

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ page.title_string }}{% endblock %}
+{% block content %}      <div class="title">
+        <h1> {{ page.title }} </h1>
+      </div>
+      <div class="info">
+        <div class="date"> {{ page.date }} </div>
+{% if page.author_url %}        <a href="{{ page.author_url }}">
+          <div class="author"> {{ page.author }} </div>
+        </a>
+{% else %}        <div class="author"> {{ page.author }} </div>
+{% endif %}      </div>
+      <div class="markdown">
+        {{ page.html | safe }}
+      </div>
+{% if not page.hidden %}{% include "partials/comments.html" %}{% endif %}{% endblock %}
+{% block scripts %}    <script src="{{ site.assets_url }}/main.js"></script>
+{% endblock %}

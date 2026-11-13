@@ -1,0 +1,27 @@
+{
+  "comment": [
+    "Exact top-level dependency versions of the legacy generator that produced",
+    "the parity baseline (scripts/verify/.cache/baseline/manifest.json).",
+    "make_baseline.sh --bootstrap-node-modules installs these with npm (see",
+    "legacy-package-lock.json for the frozen transitive closure). Never change these",
+    "versions without regenerating the baseline and re-validating parity."
+  ],
+  "node": "24.x",
+  "packages": {
+    "@mermaid-js/mermaid-cli": "11.16.0",
+    "download": "8.0.0",
+    "file-type": "22.0.1",
+    "katex": "0.18.1",
+    "less": "4.8.0",
+    "markdown-it": "14.3.0",
+    "markdown-it-anchor": "9.2.1",
+    "markdown-it-implicit-figures": "0.12.0",
+    "markdown-it-table-of-contents": "1.2.0",
+    "markdown-it-texmath": "1.0.0",
+    "md5": "2.3.0",
+    "mermaid": "11.16.0",
+    "mustache": "4.2.0",
+    "prismjs": "1.30.0",
+    "puppeteer": "25.3.0"
+  }
+}

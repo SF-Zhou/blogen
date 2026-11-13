@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Fixture Blog</title>
+    <link>https://sf-zhou.github.io</link>
+    <description>blogen parity fixture site</description>
+    <language>en</language>
+    <lastBuildDate>__LAST_BUILD_DATE__</lastBuildDate>
+    <atom:link href="https://sf-zhou.github.io/rss.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Lists, Quotes and Unknown Language</title>
+      <link>https://sf-zhou.github.io/productivity/lists_quotes_unknown_lang.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/productivity/lists_quotes_unknown_lang.html</guid>
+      <pubDate>Fri, 09 Aug 2024 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>Productivity</category>
+      <category>Tools</category>
+    </item>
+    <item>
+      <title>filename_title</title>
+      <link>https://sf-zhou.github.io/notes/filename_title.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/notes/filename_title.html</guid>
+      <pubDate>Mon, 08 Jul 2024 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>Notes</category>
+    </item>
+    <item>
+      <title>Mermaid Diagram Post</title>
+      <link>https://sf-zhou.github.io/misc/mermaid_diagram.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/misc/mermaid_diagram.html</guid>
+      <pubDate>Mon, 06 May 2024 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>Misc</category>
+    </item>
+    <item>
+      <title>Figure Image Post</title>
+      <link>https://sf-zhou.github.io/misc/figure_image.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/misc/figure_image.html</guid>
+      <pubDate>Fri, 05 Apr 2024 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>Misc</category>
+    </item>
+    <item>
+      <title>Display Name Author</title>
+      <link>https://sf-zhou.github.io/linux/display_name_author.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/linux/display_name_author.html</guid>
+      <pubDate>Mon, 04 Mar 2024 00:00:00 GMT</pubDate>
+      <dc:creator>Some Display Name</dc:creator>
+      <category>Linux</category>
+      <category>Tools</category>
+    </item>
+    <item>
+      <title>Code Highlighting</title>
+      <link>https://sf-zhou.github.io/cpp/code_highlighting.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/cpp/code_highlighting.html</guid>
+      <pubDate>Sat, 03 Feb 2024 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>C++</category>
+    </item>
+    <item>
+      <title>First Post: Metadata and Math</title>
+      <link>https://sf-zhou.github.io/rust/first_post.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/rust/first_post.html</guid>
+      <pubDate>Tue, 02 Jan 2024 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>Rust</category>
+      <category>C++</category>
+    </item>
+    <item>
+      <title>Nested Article</title>
+      <link>https://sf-zhou.github.io/notes/deep/nested_post.html</link>
+      <guid isPermaLink="true">https://sf-zhou.github.io/notes/deep/nested_post.html</guid>
+      <pubDate>Sun, 31 Dec 2023 00:00:00 GMT</pubDate>
+      <dc:creator>fixture-author</dc:creator>
+      <category>Notes</category>
+    </item>
+  </channel>
+</rss>

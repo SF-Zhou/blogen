@@ -1,0 +1,21 @@
+<div class="card">
+  <div class="abstract">
+    <a href="{{ article.url_path }}" class="article_title">
+      <p>{{ article.title }}</p>
+    </a>
+    <div class="article_info">
+      <div class="article_base">
+        <p class="date">{{ article.date }}</p>
+{% if article.author_url %}        <a href="{{ article.author_url }}">
+          <p class="author"> {{ article.author }} </p>
+        </a>
+{% else %}        <p class="author"> {{ article.author }} </p>
+{% endif %}      </div>
+      <div class="tags">
+{% for tag in article.tags %}        <p class="tag">
+          <a href="/#/{{ tag }}">{{ tag }}</a>
+        </p>
+{% endfor %}      </div>
+    </div>
+  </div>
+</div>
