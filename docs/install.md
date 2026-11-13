@@ -8,17 +8,15 @@ compiled into the binary.
 
 | Operating system | Architecture | Rust target | Notes |
 | --- | --- | --- | --- |
-| Linux | x86_64 | `x86_64-unknown-linux-musl` | Static, no glibc requirement |
 | Linux | x86_64 | `x86_64-unknown-linux-gnu` | Built on Ubuntu 22.04 (glibc ≥ 2.35) |
-| Linux | aarch64 | `aarch64-unknown-linux-musl` | Static, no glibc requirement |
 | Linux | aarch64 | `aarch64-unknown-linux-gnu` | Built on Ubuntu 22.04 (glibc ≥ 2.35) |
 | macOS | Apple Silicon | `aarch64-apple-darwin` | macOS 11 or newer |
 | macOS | Intel | `x86_64-apple-darwin` | macOS 11 or newer |
 
-The installer and `cargo binstall` prefer the static musl build on Linux
-because it works on every distribution (including Alpine and old enterprise
-images). Use `--target x86_64-unknown-linux-gnu` with the installer if you
-need a glibc-linked binary.
+The Linux binaries are linked against glibc 2.35 (the version shipped with
+Ubuntu 22.04), so they run on Ubuntu 22.04+, Debian 12+ and other
+distributions with glibc 2.35 or newer. On older systems, build from source
+with `cargo install blogen`.
 
 ## Install script (Linux and macOS)
 
@@ -78,10 +76,10 @@ exposed as the step output `version`.
 
 ## Other CI systems
 
-The install script is POSIX `sh` and only needs `curl` (or `wget`), `tar` and a
-SHA-256 tool (`sha256sum`, `shasum` or `openssl`), so it works in any Linux or
-macOS container. Install into a project-local
-directory so the pipeline needs no root access:
+The install script is POSIX `sh` and only needs `curl` (or `wget`), `tar` and
+a SHA-256 tool (`sha256sum`, `shasum` or `openssl`), so it works in any
+glibc-based Linux container or on macOS. Install into a project-local directory
+so the pipeline needs no root access:
 
 ```sh
 curl -LsSf https://github.com/SF-Zhou/blogen/releases/download/v0.1.0/blogen-installer.sh \
@@ -90,8 +88,8 @@ export PATH="$PWD/.bin:$PATH"
 blogen build
 ```
 
-Alpine and other musl-based images can use the same command because the
-preferred Linux binary is statically linked.
+The Linux binary is dynamically linked against glibc 2.35, so use a glibc-based
+image (Debian 12+, Ubuntu 22.04 or newer).
 
 ## Docker
 
@@ -131,7 +129,7 @@ downloads the prebuilt release archive instead of compiling:
 cargo binstall blogen
 ```
 
-On Linux, `cargo binstall` installs the static musl binary.
+On Linux, `cargo binstall` installs the glibc binary (requires glibc ≥ 2.35).
 
 ## Direct downloads
 
@@ -141,7 +139,7 @@ archive:
 
 ```sh
 version=0.1.0
-target=x86_64-unknown-linux-musl
+target=x86_64-unknown-linux-gnu
 curl -fsSLO "https://github.com/SF-Zhou/blogen/releases/download/v${version}/blogen-${version}-${target}.tar.gz"
 tar -xzf "blogen-${version}-${target}.tar.gz"
 install -m 0755 blogen ~/.local/bin/blogen
@@ -165,7 +163,7 @@ attestations](https://docs.github.com/en/actions/security-for-github-actions/usi
 for every archive. With the GitHub CLI:
 
 ```sh
-gh attestation verify blogen-0.1.0-x86_64-unknown-linux-musl.tar.gz \
+gh attestation verify blogen-0.1.0-x86_64-unknown-linux-gnu.tar.gz \
   --repo SF-Zhou/blogen
 ```
 

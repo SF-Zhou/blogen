@@ -55,8 +55,7 @@ Options:
   -h, --help          Show this help
 
 Supported targets:
-  x86_64-unknown-linux-musl      x86_64-unknown-linux-gnu
-  aarch64-unknown-linux-musl     aarch64-unknown-linux-gnu
+  x86_64-unknown-linux-gnu       aarch64-unknown-linux-gnu
   x86_64-apple-darwin            aarch64-apple-darwin
 
 Environment:
@@ -193,16 +192,15 @@ if [ -z "$TARGET" ]; then
             ;;
     esac
     if [ "$OS" = "linux" ]; then
-        # Static musl binaries run on every Linux distribution, regardless of
-        # the system glibc version. Pass --target ...-gnu to opt into glibc.
-        TARGET="${ARCH}-unknown-linux-musl"
+        # Linux release binaries are linked against glibc 2.35 (Ubuntu 22.04).
+        TARGET="${ARCH}-unknown-linux-gnu"
     else
         TARGET="${ARCH}-apple-darwin"
     fi
 fi
 
 case "$TARGET" in
-    *-unknown-linux-musl|*-unknown-linux-gnu|*-apple-darwin) ;;
+    *-unknown-linux-gnu|*-apple-darwin) ;;
     *) warn "installing an unusual target: $TARGET" ;;
 esac
 
@@ -283,6 +281,15 @@ if [ ! -f "${TMP_DIR}/blogen" ] || [ -L "${TMP_DIR}/blogen" ]; then
     err "archive does not contain a regular blogen binary"
 fi
 
+# Run the binary before installing it: the Linux archives are glibc binaries
+# and must not be reported as installed on a system where they cannot execute.
+if ! installed_version="$("${TMP_DIR}/blogen" --version 2>/dev/null)"; then
+    if [ "$OS" = "linux" ]; then
+        err "the downloaded binary cannot run on this system (glibc 2.35+ is required)"
+    fi
+    err "the downloaded binary cannot run on this system"
+fi
+
 # ---------------------------------------------------------------------------
 # Install
 # ---------------------------------------------------------------------------
@@ -310,8 +317,7 @@ else
 fi
 
 say "Installed to ${DEST}"
-installed_version="$("$DEST" --version 2>/dev/null || true)"
-[ -n "$installed_version" ] && say "$installed_version"
+say "$installed_version"
 
 case ":${PATH}:" in
     *":${INSTALL_DIR}:"*) ;;

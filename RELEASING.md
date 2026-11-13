@@ -2,8 +2,8 @@
 
 Releases are produced by `.github/workflows/release.yml`. A release publishes:
 
-- six target builds (Linux x86_64/aarch64 × glibc/musl, macOS
-  Intel/Apple Silicon), one `tar.gz` archive per target,
+- four target builds (Linux x86_64/aarch64 glibc, macOS Intel/Apple Silicon),
+  one `tar.gz` archive per target,
 - `SHA256SUMS` and the `curl | sh` installer,
 - GitHub build-provenance attestations for every archive,
 - the crate on crates.io (via Trusted Publishing),
@@ -85,7 +85,7 @@ stays a draft, so the problem can be fixed and the release retried.
      `## [X.Y.Z] - <date>`, then refreshes `Cargo.lock` with `cargo metadata`,
    - creates and pushes `release: vX.Y.Z` and the annotated tag `vX.Y.Z`,
    - runs the test suite on the release commit,
-   - builds, smoke-tests and packages all six targets,
+   - builds, smoke-tests and packages all four targets,
    - creates a **draft** GitHub release with archives, `SHA256SUMS`, the
      installer and attestations,
    - obtains a short-lived crates.io token through GitHub OIDC and publishes
@@ -183,8 +183,8 @@ shellcheck scripts/install.sh
    cross-compiling the QuickJS and AWS-LC C sources is fragile). The Arm64
    Linux runners used here are available for public repositories; a private
    fork must replace them with self-hosted or larger runners.
-2. Add the required packages to the job if the target needs them (musl
-   toolchain, NASM, `patch`, …).
+2. Add the required packages to the job if the target needs them (NASM,
+   cmake, `patch`, …).
 3. `scripts/install.sh` detects OS/arch automatically; only update it if the
    new target is the default for a platform family.
 4. Update `[package.metadata.binstall]` in `Cargo.toml` if the archive naming
@@ -203,7 +203,7 @@ shellcheck scripts/install.sh
 | `scripts/install.sh` | POSIX installer (Linux/macOS) |
 | `action.yml` | Composite GitHub Action wrapper around the installer |
 | `packaging/release-notes-footer.md` | Install instructions appended to release notes |
-| `Dockerfile` | Thin static-binary image |
+| `Dockerfile` | Container image around the Linux glibc binary |
 
 ## Verifying a published release
 
@@ -211,7 +211,7 @@ shellcheck scripts/install.sh
 version=0.2.0
 curl -fsSLO "https://github.com/SF-Zhou/blogen/releases/download/v${version}/SHA256SUMS"
 sha256sum -c SHA256SUMS --ignore-missing
-gh attestation verify "blogen-${version}-x86_64-unknown-linux-musl.tar.gz" \
+gh attestation verify "blogen-${version}-x86_64-unknown-linux-gnu.tar.gz" \
   --repo SF-Zhou/blogen
 cargo binstall blogen --version "$version"
 docker run --rm ghcr.io/sf-zhou/blogen:"$version" --version

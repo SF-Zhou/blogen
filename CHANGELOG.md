@@ -10,7 +10,7 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 - Automated release pipeline (`.github/workflows/release.yml`): one click or a
   `v*` tag builds and publishes prebuilt binaries for Linux (x86_64/aarch64,
-  glibc and static musl) and macOS (Intel and Apple Silicon), with SHA-256
+  glibc 2.35+) and macOS (Intel and Apple Silicon), with SHA-256
   checksums, build-provenance attestations, a crates.io publish via Trusted
   Publishing (GitHub OIDC, no stored token), a multi-arch `ghcr.io` container
   image and floating `v<major>`/`v<major>.<minor>` tags.

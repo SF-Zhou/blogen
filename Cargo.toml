@@ -20,12 +20,6 @@ pkg-url = "{ repo }/releases/download/v{ version }/blogen-{ version }-{ target }
 bin-dir = "{ bin }{ binary-ext }"
 pkg-fmt = "tgz"
 
-# On Linux always use the static musl build: it has no glibc version
-# requirement and runs on every distribution (the archive also exists for gnu
-# targets, but musl is the portable choice).
-[package.metadata.binstall.overrides.'cfg(target_os = "linux")']
-pkg-url = "{ repo }/releases/download/v{ version }/blogen-{ version }-{ target-arch }-unknown-linux-musl.tar.gz"
-
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 clap = { version = "4.6", features = ["derive"] }

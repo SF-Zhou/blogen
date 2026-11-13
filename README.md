@@ -42,8 +42,8 @@ external toolchain dependency.
 
 ## Installation
 
-Prebuilt binaries are published for Linux (x86_64/aarch64, static musl and
-glibc) and macOS (Intel and Apple Silicon). On Linux and macOS:
+Prebuilt binaries are published for Linux (x86_64/aarch64, glibc 2.35+) and
+macOS (Intel and Apple Silicon). On Linux and macOS:
 
 ```bash
 curl -LsSf https://github.com/SF-Zhou/blogen/releases/latest/download/blogen-installer.sh | sh
