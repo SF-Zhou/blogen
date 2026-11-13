@@ -1,6 +1,8 @@
 
 ## Installation
 
+Also available on the [GitHub Marketplace](https://github.com/marketplace/actions/install-blogen).
+
 Linux and macOS:
 
 ```sh

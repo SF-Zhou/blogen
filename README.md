@@ -57,6 +57,8 @@ it to `PATH`):
 - run: blogen build
 ```
 
+The action is listed on the [GitHub Marketplace](https://github.com/marketplace/actions/install-blogen).
+
 Other options:
 
 ```bash

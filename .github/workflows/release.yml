@@ -506,6 +506,10 @@ jobs:
             echo "### Published ${TAG}"
             echo
             echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+            echo
+            echo "GitHub Marketplace is enabled per release in the web UI (2FA);"
+            echo "edit the release to list this version:"
+            echo "https://github.com/${GITHUB_REPOSITORY}/releases/edit/${TAG}"
           } >> "$GITHUB_STEP_SUMMARY"
 
   # -------------------------------------------------------------------------

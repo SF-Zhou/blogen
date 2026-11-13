@@ -130,6 +130,16 @@ Pre-releases are published as GitHub pre-releases and get a container image
 tagged with the exact pre-release version, but do not publish to crates.io and
 do not move the container's floating tags or the floating action tags.
 
+### GitHub Marketplace
+
+`blogen` is listed at <https://github.com/marketplace/actions/install-blogen>.
+Marketplace publication is a per-release checkbox in the GitHub web UI and
+requires 2FA; it is not exposed by the REST/GraphQL APIs or `gh`, so the
+workflow cannot set it. After the automated release is published, open
+`https://github.com/SF-Zhou/blogen/releases/edit/vX.Y.Z`, check **Publish this
+Action to the GitHub Marketplace**, and update the release. The generated
+release notes already link to the listing.
+
 ## Manual checklist before releasing
 
 The release workflow builds and tests the code, but two things are deliberately

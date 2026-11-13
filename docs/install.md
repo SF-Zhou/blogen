@@ -74,6 +74,8 @@ Inputs: `version` (default `latest`), `bin-dir` (default a user-local
 directory), `target` and `base-url` (advanced). The installed version is
 exposed as the step output `version`.
 
+The action is listed on the [GitHub Marketplace](https://github.com/marketplace/actions/install-blogen).
+
 ## Other CI systems
 
 The install script is POSIX `sh` and only needs `curl` (or `wget`), `tar` and
