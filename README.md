@@ -42,20 +42,34 @@ external toolchain dependency.
 
 ## Installation
 
-```bash
-cargo install blogen
-```
-
-Or from a checkout:
+Prebuilt binaries are published for Linux (x86_64/aarch64, static musl and
+glibc) and macOS (Intel and Apple Silicon). On Linux and macOS:
 
 ```bash
-cargo build --release        # target/release/blogen
-cargo install --path .
+curl -LsSf https://github.com/SF-Zhou/blogen/releases/latest/download/blogen-installer.sh | sh
 ```
 
-Rust 1.95 or newer is required. The release binary is ~35 MB: the pure-Rust
-Mermaid renderer is compiled in, so no browser/runtime is needed to build a
-site.
+In another CI pipeline, use the composite action (installs the binary and adds
+it to `PATH`):
+
+```yaml
+- uses: SF-Zhou/blogen@v0
+- run: blogen build
+```
+
+Other options:
+
+```bash
+cargo install blogen        # build from source (Rust 1.95+)
+cargo binstall blogen       # prebuilt binary via cargo-binstall
+docker run --rm -v "$PWD:/site" ghcr.io/sf-zhou/blogen:latest build
+```
+
+See [docs/install.md](docs/install.md) for version pinning,
+checksum/attestation verification and the full platform table.
+
+The release binary is ~35 MB: the pure-Rust Mermaid renderer is compiled in, so
+no browser/runtime is needed to build a site.
 
 ## Quick start
 

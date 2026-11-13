@@ -1,0 +1,631 @@
+name: Release
+
+# Builds, attests and publishes a release:
+#
+#   * tag push (v1.2.3)        -> build and publish that tag
+#   * workflow_dispatch        -> bump the version, commit, tag, then build
+#
+# The binary matrix, the release script and the installer scripts are
+# described in RELEASING.md.
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump for the release"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - none
+        default: patch
+      dry_run:
+        description: "Build and package everything, but do not tag, publish or create a release"
+        type: boolean
+        default: false
+      publish_crates:
+        description: "Publish to crates.io (requires Trusted Publishing to be configured)"
+        type: boolean
+        default: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: "5"
+  RUST_BACKTRACE: "1"
+  # Oldest macOS supported by the prebuilt binaries. Ignored on other runners.
+  MACOSX_DEPLOYMENT_TARGET: "11.0"
+
+jobs:
+  # -------------------------------------------------------------------------
+  # Resolve (and, for manual runs, create) the release commit and tag.
+  # -------------------------------------------------------------------------
+  plan:
+    name: Plan release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      sha: ${{ steps.commit.outputs.sha }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      dry_run: ${{ steps.plan.outputs.dry_run }}
+      publish_crates: ${{ steps.plan.outputs.publish_crates }}
+      retry: ${{ steps.plan.outputs.retry }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Determine the release version
+        id: plan
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_BUMP: ${{ inputs.bump }}
+          DISPATCH_DRY_RUN: ${{ inputs.dry_run }}
+          DISPATCH_PUBLISH_CRATES: ${{ inputs.publish_crates }}
+          TAG_REF: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          bump="none"
+          dry_run="false"
+          publish_crates="true"
+          retry="false"
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            dry_run="$DISPATCH_DRY_RUN"
+            publish_crates="$DISPATCH_PUBLISH_CRATES"
+          fi
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$dry_run" != "true" ]; then
+            if [ "$(git rev-parse --abbrev-ref HEAD)" != "main" ]; then
+              echo "::error::releases must be dispatched from main"
+              exit 1
+            fi
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            if [ "$(git rev-parse HEAD)" != "$(git rev-parse refs/remotes/origin/main)" ]; then
+              echo "::error::local main is not up to date with origin/main; pull first"
+              exit 1
+            fi
+            if ! git ls-files --error-unmatch Cargo.lock >/dev/null 2>&1; then
+              echo "::error::Cargo.lock must be committed; '--locked' release builds depend on it"
+              exit 1
+            fi
+            version="$(python3 scripts/release/release.py current)"
+            tag="v${version}"
+            if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null \
+               && [ "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/${tag}^{commit}")" ]; then
+              # HEAD is already the tagged release commit: this is a re-run of
+              # an earlier attempt (or an explicit retry). Never bump again.
+              bump="none"
+              retry="true"
+              echo "::notice::HEAD is already release commit ${tag}; resuming it"
+            elif ! git rev-parse -q --verify "refs/tags/${tag}" >/dev/null \
+                 && [ "$(git log -1 --format=%s)" = "release: ${tag}" ]; then
+              # The release commit was pushed but the tag push failed. Tag
+              # HEAD again without bumping.
+              bump="none"
+              echo "::notice::HEAD is the untagged release commit ${tag}; tagging it"
+            elif [ "$DISPATCH_BUMP" = "none" ]; then
+              bump="none"
+              if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+                # The tag exists on an older commit: retry that release.
+                retry="true"
+                echo "::notice::tag ${tag} already exists; retrying that release"
+                git merge-base --is-ancestor "refs/tags/${tag}^{commit}" \
+                  refs/remotes/origin/main \
+                  || { echo "::error::tag ${tag} is not on main"; exit 1; }
+              fi
+            else
+              bump="$DISPATCH_BUMP"
+              version="$(python3 scripts/release/release.py bump --part "$bump")"
+              cargo metadata --format-version 1 >/dev/null
+              tag="v${version}"
+              if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+                echo "::error::tag ${tag} already exists; use bump: none to retry it"
+                exit 1
+              fi
+            fi
+            python3 scripts/release/release.py check --tag "$tag"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            # A dry run builds the current tree and never writes a tag.
+            version="$(python3 scripts/release/release.py current)"
+            tag="v${version}"
+            dry_run="true"
+            publish_crates="false"
+            echo "::notice::dry run: building blogen ${version} without tagging or publishing"
+          else
+            tag="$TAG_REF"
+            version="${tag#v}"
+            python3 scripts/release/release.py check --tag "$tag"
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            if ! git merge-base --is-ancestor HEAD refs/remotes/origin/main; then
+              echo "::error::tag ${tag} must point at a commit on main"
+              exit 1
+            fi
+          fi
+
+          case "$version" in
+            *-*) prerelease="true" ;;
+            *) prerelease="false" ;;
+          esac
+          if [ "$prerelease" = "true" ]; then
+            publish_crates="false"
+          fi
+
+          {
+            echo "version=${version}"
+            echo "tag=${tag}"
+            echo "bump=${bump}"
+            echo "prerelease=${prerelease}"
+            echo "dry_run=${dry_run}"
+            echo "publish_crates=${publish_crates}"
+            echo "retry=${retry}"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### blogen ${tag}"
+            echo
+            echo "- version: \`${version}\`"
+            echo "- prerelease: \`${prerelease}\`"
+            echo "- dry run: \`${dry_run}\`"
+            echo "- bump: \`${bump}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create the release commit and tag
+        if: steps.plan.outputs.dry_run != 'true' && steps.plan.outputs.retry != 'true' && github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          VERSION: ${{ steps.plan.outputs.version }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          BUMP: ${{ steps.plan.outputs.bump }}
+          # Tags are pushed with the built-in token: pushes made with
+          # GITHUB_TOKEN do not start another workflow run, which would
+          # otherwise build the same release a second time.
+          TAG_PUSH_TOKEN: ${{ github.token }}
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock CHANGELOG.md
+          if git diff --cached --quiet; then
+            if [ "$BUMP" != "none" ]; then
+              echo "::error::nothing to commit for ${TAG}; is the version already released?"
+              exit 1
+            fi
+            echo "::notice::version ${VERSION} is already committed; tagging HEAD"
+          else
+            git commit -m "release: ${TAG}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+          git tag -a "$TAG" -m "blogen ${TAG}"
+          # Drop the checkout credentials before pushing the tag with the
+          # built-in token, otherwise git would send two Authorization headers.
+          git config --local --unset-all "http.https://github.com/.extraheader" 2>/dev/null || true
+          git config --local --unset-all "http.extraheader" 2>/dev/null || true
+          git push "https://x-access-token:${TAG_PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "refs/tags/${TAG}"
+
+      - name: Record the release commit
+        id: commit
+        shell: bash
+        env:
+          RETRY: ${{ steps.plan.outputs.retry }}
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if [ "$RETRY" = "true" ]; then
+            sha="$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          else
+            sha="$(git rev-parse HEAD)"
+          fi
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+
+  # -------------------------------------------------------------------------
+  # Gate: the tagged tree must pass the test suite.
+  # -------------------------------------------------------------------------
+  verify:
+    name: Verify release commit
+    needs: plan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 1
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: verify
+      - name: Test
+        run: cargo test --locked
+
+  # -------------------------------------------------------------------------
+  # Build the binary matrix.
+  # -------------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.target }}
+    needs: [plan, verify]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-22.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: aarch64-apple-darwin
+            os: macos-15
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 1
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake nasm patch
+
+      - name: Install musl toolchain
+        if: contains(matrix.target, 'musl')
+        shell: bash
+        run: sudo apt-get install -y --no-install-recommends musl-tools
+
+      - name: Install macOS build dependencies
+        if: matrix.target == 'x86_64-apple-darwin'
+        shell: bash
+        run: brew install nasm
+
+      - name: Configure musl static linking
+        if: contains(matrix.target, 'musl')
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="${{ matrix.target }}"
+          # The cc crate picks musl-gcc automatically for musl targets; setting
+          # the variables explicitly also covers build scripts that read them.
+          echo "CC_${target}=musl-gcc" >> "$GITHUB_ENV"
+          upper="$(printf '%s' "$target" | tr 'a-z-' 'A-Z_')"
+          echo "CARGO_TARGET_${upper}_LINKER=musl-gcc" >> "$GITHUB_ENV"
+
+      - name: Build
+        shell: bash
+        run: cargo build --locked --profile dist --target "${{ matrix.target }}"
+
+      - name: Smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin="target/${{ matrix.target }}/dist/blogen"
+          "$bin" --version
+          "$bin" theme list | grep -q default
+
+      - name: Package
+        shell: bash
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)"
+          export SOURCE_DATE_EPOCH
+          if python3 -c '' >/dev/null 2>&1; then PY=python3; else PY=python; fi
+          "$PY" scripts/release/package.py --version "$VERSION" --target "$TARGET" --out dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: blogen-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  # -------------------------------------------------------------------------
+  # Create a draft GitHub release with every artifact, checksums and the
+  # installer. The draft is published only after the required jobs succeeded.
+  # -------------------------------------------------------------------------
+  draft-release:
+    name: Create draft release
+    needs: [plan, build]
+    if: needs.plan.outputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Assemble release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp scripts/install.sh dist/blogen-installer.sh
+          chmod 0755 dist/blogen-installer.sh
+          python3 scripts/release/checksums.py dist
+          ls -l dist
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/*"
+
+      - name: Generate release notes
+        shell: bash
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 scripts/release/release.py notes --version "$VERSION" --out /tmp/changelog.md
+          sed "s/@@VERSION@@/${VERSION}/g" packaging/release-notes-footer.md > /tmp/footer.md
+          cat /tmp/changelog.md /tmp/footer.md > /tmp/release-notes.md
+          cat /tmp/release-notes.md
+
+      - name: Create draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.plan.outputs.tag }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          state="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json isDraft -q .isDraft 2>/dev/null || true)"
+          if [ "$state" = "false" ]; then
+            echo "::notice::release ${TAG} is already published; nothing to upload"
+            exit 0
+          fi
+          if [ "$state" = "true" ]; then
+            echo "::notice::removing the previous draft release for ${TAG}"
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes
+          fi
+          args=(--draft --verify-tag --title "blogen ${TAG}" --notes-file /tmp/release-notes.md --repo "$GITHUB_REPOSITORY")
+          if [ "$PRERELEASE" = "true" ]; then args+=(--prerelease); fi
+          gh release create "$TAG" "${args[@]}"
+          gh release upload "$TAG" dist/* --clobber --repo "$GITHUB_REPOSITORY"
+
+  # -------------------------------------------------------------------------
+  # Publish the crate to crates.io using Trusted Publishing (GitHub OIDC).
+  # No long-lived crates.io token is stored in the repository; configure the
+  # publisher under the crate's crates.io settings first (see RELEASING.md).
+  # -------------------------------------------------------------------------
+  publish-crates:
+    name: Publish to crates.io
+    needs: [plan, build]
+    if: needs.plan.outputs.dry_run != 'true' && needs.plan.outputs.publish_crates == 'true' && needs.plan.outputs.prerelease != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 1
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Validate the package
+        run: cargo package --locked --no-verify
+
+      - name: Check whether the version is already published
+        id: exists
+        shell: bash
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          status="$(curl -s -o /dev/null -w '%{http_code}' \
+            -A "blogen-release (https://github.com/${GITHUB_REPOSITORY})" \
+            "https://crates.io/api/v1/crates/blogen/${VERSION}")"
+          case "$status" in
+            200)
+              echo "published=true" >> "$GITHUB_OUTPUT"
+              echo "::notice::blogen ${VERSION} is already on crates.io; nothing to do"
+              ;;
+            404)
+              echo "published=false" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::unexpected crates.io response (HTTP ${status})"
+              exit 1
+              ;;
+          esac
+
+      - name: Authenticate with crates.io
+        if: steps.exists.outputs.published != 'true'
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1.0.6
+
+      - name: Publish
+        if: steps.exists.outputs.published != 'true'
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --locked --no-verify
+
+  # -------------------------------------------------------------------------
+  # Publish the draft once everything that can fail has succeeded.
+  # -------------------------------------------------------------------------
+  publish-release:
+    name: Publish GitHub release
+    needs: [plan, draft-release, publish-crates]
+    if: |
+      always() &&
+      needs.plan.outputs.dry_run != 'true' &&
+      needs.draft-release.result == 'success' &&
+      (needs.publish-crates.result == 'success' || needs.publish-crates.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.plan.outputs.tag }}
+          VERSION: ${{ needs.plan.outputs.version }}
+          PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          args=(--draft=false --repo "$GITHUB_REPOSITORY")
+          if [ "$PRERELEASE" = "true" ]; then
+            args+=(--prerelease --latest=false)
+          else
+            # Never point releases/latest at an older release line.
+            latest_tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest" -q .tag_name 2>/dev/null || true)"
+            if [ -z "$latest_tag" ] || \
+               [ "$(printf '%s\n%s\n' "${latest_tag#v}" "$VERSION" | sort -V | tail -n 1)" = "$VERSION" ]; then
+              args+=(--latest=true)
+            else
+              args+=(--latest=false)
+              echo "::notice::not marking ${TAG} as latest because ${latest_tag} is newer"
+            fi
+          fi
+          gh release edit "$TAG" "${args[@]}"
+          {
+            echo "### Published ${TAG}"
+            echo
+            echo "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------------------------------------
+  # Container image (ghcr.io) built from the static musl binaries.
+  # -------------------------------------------------------------------------
+  docker:
+    name: Publish container image
+    needs: [plan, publish-release]
+    if: needs.publish-release.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 1
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Prepare the build context
+        shell: bash
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p .docker-bin/amd64 .docker-bin/arm64
+          tar -xzf "dist/blogen-${VERSION}-x86_64-unknown-linux-musl.tar.gz" -C .docker-bin/amd64 blogen
+          tar -xzf "dist/blogen-${VERSION}-aarch64-unknown-linux-musl.tar.gz" -C .docker-bin/arm64 blogen
+
+      - name: Compute image tags
+        id: tags
+        shell: bash
+        env:
+          VERSION: ${{ needs.plan.outputs.version }}
+          PRERELEASE: ${{ needs.plan.outputs.prerelease }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')"
+          if [ "$PRERELEASE" = "true" ]; then
+            tags="${image}:${VERSION}"
+          else
+            major="${VERSION%%.*}"
+            minor="${VERSION%.*}"
+            tags="${image}:${VERSION},${image}:${minor},${image}:${major},${image}:latest"
+          fi
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            BLOGEN_VERSION=${{ needs.plan.outputs.version }}
+          provenance: true
+          sbom: true
+
+  # -------------------------------------------------------------------------
+  # Floating action tags: v<major> and v<major>.<minor> point at the latest
+  # stable release.
+  # -------------------------------------------------------------------------
+  floating-tags:
+    name: Update floating tags
+    needs: [plan, publish-release]
+    if: needs.publish-release.result == 'success' && needs.plan.outputs.prerelease != 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.plan.outputs.sha }}
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+      - name: Move the major and minor tags
+        shell: bash
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          major="${VERSION%%.*}"
+          minor="${VERSION%.*}"
+          for floating in "v${major}" "v${major}.${minor}"; do
+            git tag -f "$floating" "$TAG"
+            git push origin "refs/tags/${floating}" --force
+          done

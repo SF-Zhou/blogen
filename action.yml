@@ -1,0 +1,51 @@
+name: "Install blogen"
+description: "Install the prebuilt blogen static blog generator (Linux and macOS) and add it to PATH"
+author: "SF-Zhou"
+
+branding:
+  icon: "book-open"
+  color: "blue"
+
+inputs:
+  version:
+    description: "blogen version to install, for example 0.2.0 (or latest)"
+    required: false
+    default: "latest"
+  bin-dir:
+    description: "Directory to install blogen into (defaults to a user-local directory)"
+    required: false
+    default: ""
+  target:
+    description: "Advanced: override the Rust target triple"
+    required: false
+    default: ""
+  base-url:
+    description: "Advanced: release base URL (used by blogen's own tests)"
+    required: false
+    default: ""
+
+outputs:
+  version:
+    description: "The installed blogen version"
+    value: ${{ steps.install-unix.outputs.version }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install blogen (Linux and macOS)
+      id: install-unix
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+        INPUT_BIN_DIR: ${{ inputs.bin-dir }}
+        INPUT_TARGET: ${{ inputs.target }}
+        INPUT_BASE_URL: ${{ inputs.base-url }}
+      run: |
+        set -euo pipefail
+        bin_dir="${INPUT_BIN_DIR:-$HOME/.local/bin}"
+        args=(--version "$INPUT_VERSION" --dir "$bin_dir" --quiet)
+        if [ -n "$INPUT_TARGET" ]; then args+=(--target "$INPUT_TARGET"); fi
+        if [ -n "$INPUT_BASE_URL" ]; then args+=(--base-url "$INPUT_BASE_URL"); fi
+        sh "$GITHUB_ACTION_PATH/scripts/install.sh" "${args[@]}"
+        printf '%s\n' "$bin_dir" >> "$GITHUB_PATH"
+        echo "version=$("$bin_dir/blogen" --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"

@@ -7,12 +7,24 @@ authors = ["SF-Zhou <sfzhou.scut@gmail.com>"]
 description = "A fast, themeable static blog generator with math, syntax highlighting and Mermaid support"
 documentation = "https://docs.rs/blogen"
 readme = "README.md"
-homepage = "https://github.com/SF-Zhou/blogen"
 repository = "https://github.com/SF-Zhou/blogen"
 license = "MIT OR Apache-2.0"
 keywords = ["static-site", "blog", "markdown", "generator", "markdown-it"]
 categories = ["command-line-utilities", "web-programming"]
-exclude = ["/scripts/"]
+exclude = ["/scripts/", "/packaging/"]
+
+# Prebuilt binary support for `cargo binstall` / `cargo-binstall`. The release
+# workflow publishes one archive per target with the executable at its root.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/blogen-{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+
+# On Linux always use the static musl build: it has no glibc version
+# requirement and runs on every distribution (the archive also exists for gnu
+# targets, but musl is the portable choice).
+[package.metadata.binstall.overrides.'cfg(target_os = "linux")']
+pkg-url = "{ repo }/releases/download/v{ version }/blogen-{ version }-{ target-arch }-unknown-linux-musl.tar.gz"
 
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }

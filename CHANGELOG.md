@@ -6,6 +6,29 @@ project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Automated release pipeline (`.github/workflows/release.yml`): one click or a
+  `v*` tag builds and publishes prebuilt binaries for Linux (x86_64/aarch64,
+  glibc and static musl) and macOS (Intel and Apple Silicon), with SHA-256
+  checksums, build-provenance attestations, a crates.io publish via Trusted
+  Publishing (GitHub OIDC, no stored token), a multi-arch `ghcr.io` container
+  image and floating `v<major>`/`v<major>.<minor>` tags.
+- `curl | sh` installer (`scripts/install.sh`) with checksum verification and
+  version pinning.
+- Composite GitHub Action (`uses: SF-Zhou/blogen@v0`) that installs the
+  prebuilt binary and adds it to `PATH`.
+- `cargo binstall blogen` support through `[package.metadata.binstall]`.
+- Installation guide (`docs/install.md`) and a release runbook
+  (`RELEASING.md`).
+
+### Changed
+
+- `Cargo.lock` is now committed so release builds with `--locked` are
+  reproducible.
+- Release archives use `--profile dist` (fat LTO) and contain the executable,
+  license files, changelog and a `BUILD_INFO.txt` with commit/toolchain data.
+
 ## [0.1.0] - 2026-11-13
 
 ### Added

@@ -1,0 +1,6 @@
+# The release image only needs the Dockerfile and the prebuilt binaries that
+# the workflow extracts into .docker-bin/.
+*
+!Dockerfile
+!.docker-bin
+!.docker-bin/**

@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
@@ -16,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -54,6 +57,32 @@ jobs:
       - name: Documentation
         run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --locked
 
+  release-tooling:
+    name: Release tooling
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo.lock is committed
+        run: git ls-files --error-unmatch Cargo.lock
+      - name: Python syntax
+        run: python3 -m py_compile scripts/release/*.py
+      - name: Unit tests
+        run: python3 -m unittest discover -s scripts/release -p 'test_*.py' -v
+      - name: Shell syntax
+        run: sh -n scripts/install.sh
+      - name: ShellCheck
+        run: shellcheck scripts/install.sh
+      - name: Build
+        run: cargo build --release --locked
+      - name: Package the local binary
+        run: |
+          target="$(rustc -vV | sed -n 's/^host: //p')"
+          python3 scripts/release/package.py --target "$target" --profile release --out /tmp/dist
+          python3 scripts/release/checksums.py /tmp/dist
+          tar -tzf "/tmp/dist/blogen-$(python3 scripts/release/release.py current)-${target}.tar.gz"
+
   end-to-end:
     name: End-to-end site build
     runs-on: ubuntu-latest
@@ -87,3 +116,69 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Package
         run: cargo package --locked --allow-dirty
+
+  installers:
+    name: Installer (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: installer
+
+      - name: Build a binary
+        run: cargo build --release --locked
+
+      - name: Package a local release
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(python3 scripts/release/release.py current)"
+          target="$(rustc -vV | sed -n 's/^host: //p')"
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+          echo "TARGET=${target}" >> "$GITHUB_ENV"
+          python3 scripts/release/package.py \
+            --version "$version" --target "$target" --profile release --out dist
+          mkdir -p "serve/download/v${version}"
+          cp dist/* "serve/download/v${version}/"
+          python3 scripts/release/checksums.py "serve/download/v${version}"
+
+      - name: Install with install.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          sh scripts/install.sh \
+            --version "$VERSION" \
+            --target "$TARGET" \
+            --base-url "file://$PWD/serve" \
+            --dir "$PWD/bin"
+          "$PWD/bin/blogen" --version | grep -q "blogen ${VERSION}"
+
+      - name: Verify checksum failures are fatal
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "bad/download/v${VERSION}"
+          cp "serve/download/v${VERSION}"/* "bad/download/v${VERSION}/"
+          # Corrupt the archive but leave SHA256SUMS intact.
+          printf 'corrupted' >> "bad/download/v${VERSION}/blogen-${VERSION}-${TARGET}.tar.gz"
+          if sh scripts/install.sh --version "$VERSION" --target "$TARGET" --base-url "file://$PWD/bad" --dir "$PWD/bin-bad"; then
+            echo "::error::installer accepted a corrupted archive"
+            exit 1
+          fi
+
+      - name: Install through the composite action
+        uses: ./
+        with:
+          version: ${{ env.VERSION }}
+          target: ${{ env.TARGET }}
+          base-url: file://${{ github.workspace }}/serve
+          bin-dir: ${{ github.workspace }}/action-bin
+
+      - name: Use the action-installed binary
+        run: blogen --version

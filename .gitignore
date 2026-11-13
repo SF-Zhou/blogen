@@ -1,5 +1,6 @@
 /target
 /dist
+/.docker-bin
 .DS_Store
 *.swp
 # dev-only reference renderer deps
@@ -10,5 +11,11 @@
 # generated trial sites
 /tmp-site/
 
-# Cargo lock is not committed (library-style repo; regenerated on build)
-/Cargo.lock
+# Cargo.lock *is* committed: release builds use `--locked` so the exact
+# dependency set of every published binary is reproducible.
+# The parent directory may ignore Cargo.lock globally; this repository tracks it.
+!Cargo.lock
+
+# Python bytecode from the release tooling
+__pycache__/
+*.pyc
